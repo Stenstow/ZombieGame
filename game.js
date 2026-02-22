@@ -380,6 +380,32 @@ window.addEventListener("keyup", (e) => {
   }
 });
 
+// Mobile Controls handling
+document.querySelectorAll(".mob-btn").forEach((btn) => {
+  const tKey = btn.dataset.key;
+  if (!tKey) return;
+
+  const press = (e) => {
+    e.preventDefault();
+    if (tKey === 'N' && gameOver) {
+      window.location.reload();
+      return;
+    }
+    keys[tKey] = true;
+  };
+
+  const release = (e) => {
+    e.preventDefault();
+    keys[tKey] = false;
+  };
+
+  btn.addEventListener("touchstart", press, { passive: false });
+  btn.addEventListener("touchend", release, { passive: false });
+  btn.addEventListener("mousedown", press);
+  btn.addEventListener("mouseup", release);
+  btn.addEventListener("mouseleave", release);
+});
+
 function updatePlayer(dt) {
   let mx = 0;
   let my = 0;
@@ -866,6 +892,11 @@ function drawGameOver() {
   ctx.font = "600 24px Segoe UI";
   ctx.fillText("Druecke N fuer Neustart", canvas.width / 2, canvas.height / 2 + 22);
   ctx.textAlign = "left";
+
+  const restartBtn = document.getElementById("btnRestart");
+  if (restartBtn && restartBtn.style.display === "none") {
+    restartBtn.style.display = "flex";
+  }
 }
 
 function updateStats() {

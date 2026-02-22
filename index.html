@@ -1,11 +1,13 @@
 ﻿<!doctype html>
 <html lang="de">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Zombie Siege</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
   <div class="hud">
     <div>Zombie Siege</div>
@@ -13,6 +15,29 @@
   </div>
   <canvas id="game" width="1100" height="620"></canvas>
   <div class="hint">Pfeile: Bewegen | Leertaste: Minigun | R: Nachladen | Shift: Sprint | N: Neustart</div>
+
+  <!-- Mobile Controls -->
+  <div class="mobile-controls" id="mobileControls">
+    <div class="dpad">
+      <div class="dpad-row">
+        <button data-key="ArrowUp" class="mob-btn up">▲</button>
+      </div>
+      <div class="dpad-row">
+        <button data-key="ArrowLeft" class="mob-btn left">◀</button>
+        <button data-key="ArrowDown" class="mob-btn down">▼</button>
+        <button data-key="ArrowRight" class="mob-btn right">▶</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button data-key="Space" class="mob-btn action">Fire</button>
+      <button data-key="R" class="mob-btn action">R</button>
+      <button data-key="Shift" class="mob-btn action">Sprint</button>
+      <button data-key="N" class="mob-btn action" id="btnRestart"
+        style="display:none; background:#ff4444;">Restart</button>
+    </div>
+  </div>
+
   <script src="game.js"></script>
 </body>
+
 </html>
