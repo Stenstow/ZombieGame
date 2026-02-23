@@ -173,6 +173,12 @@ function aliveZombieCount() {
 }
 
 function isInsideObstacle(x, y, radius) {
+  for (const b of buildings) {
+    if (x + radius > b.x && x - radius < b.x + b.w &&
+      y + radius > b.y && y - radius < b.y + b.h) {
+      return true;
+    }
+  }
   for (const o of cityObstacles) {
     if (Math.hypot(x - o.x, y - o.y) < o.r + radius + 8) return true;
   }
