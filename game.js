@@ -542,6 +542,39 @@ function updateBullets(dt) {
     }
     if (consumed) continue;
 
+    if (yetiActive && yetiEating <= 0 && circleHit(b.x, b.y, b.r, yetiPos.x, yetiPos.y, 23)) {
+      yetiPos.hp -= b.damage;
+
+      if (b.type !== "flame") {
+        bullets.splice(i, 1);
+      }
+
+      for (let p = 0; p < (b.type === "flame" ? 1 : 3); p++) {
+        particles.push({
+          x: b.x,
+          y: b.y,
+          vx: (b.vx * 0.1) + (Math.random() - 0.5) * 100,
+          vy: (b.vy * 0.1) + (Math.random() - 0.5) * 100,
+          life: 0.3 + Math.random() * 0.3,
+          type: "blood"
+        });
+      }
+
+      if (yetiPos.hp <= 0) {
+        yetiActive = false;
+        yetiTimer = 180;
+        player.score += 2500;
+        for (let p = 0; p < 25; p++) {
+          particles.push({
+            x: yetiPos.x, y: yetiPos.y,
+            vx: (Math.random() - 0.5) * 200, vy: (Math.random() - 0.5) * 200,
+            life: 0.5 + Math.random(), type: "blood"
+          });
+        }
+      }
+      if (b.type !== "flame") continue;
+    }
+
     for (const z of zombies) {
       if (!z.alive) continue;
       if (circleHit(b.x, b.y, b.r, z.x, z.y, z.r)) {
@@ -1061,6 +1094,8 @@ function updateYeti(dt) {
     if (yetiTimer <= 0) {
       yetiActive = true;
       yetiEating = 0;
+      yetiPos.hp = (2 + Math.floor(wave / 3)) * 3;
+      yetiPos.maxHp = yetiPos.hp;
       const angle = Math.random() * Math.PI * 2;
       yetiPos.x = player.x + Math.cos(angle) * 1200;
       yetiPos.y = player.y + Math.sin(angle) * 1200;
@@ -1079,8 +1114,9 @@ function updateYeti(dt) {
 
   if (dist > 15) {
     const yetiSpeed = 410;
-    yetiPos.x += (dx / dist) * yetiSpeed * dt;
-    yetiPos.y += (dy / dist) * yetiSpeed * dt;
+    const nx = yetiPos.x + (dx / dist) * yetiSpeed * dt;
+    const ny = yetiPos.y + (dy / dist) * yetiSpeed * dt;
+    obstaclePush(yetiPos, nx, ny, 23);
   } else {
     yetiEating = 0.01;
     player.health = 0;
@@ -1133,6 +1169,16 @@ function drawYeti() {
   ctx.fillRect(1 * scale, -12 * scale, 2 * scale, 2 * scale);
 
   if (yetiEating > 0) {
+    // SkiFree eating animation details
+    ctx.fillStyle = "#1f2732";
+    ctx.beginPath();
+    ctx.arc(0, -11 * scale, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#d0ab84";
+    ctx.fillRect(-3, -8 * scale, 6, 10);
+    ctx.fillStyle = "#ea6666";
+    ctx.fillRect(-2, -5 * scale, 4, 12);
+
     ctx.fillStyle = "#000000";
     ctx.fillRect(-4 * scale, -8 * scale, 8 * scale, 6 * scale);
     ctx.fillStyle = "#ffff00";
@@ -1148,6 +1194,13 @@ function drawYeti() {
     ctx.fillRect(2 * scale, -8 * scale, 2 * scale, 1.5 * scale);
     ctx.fillRect(-2 * scale, -5.5 * scale, 2 * scale, 1.5 * scale);
   }
+
+  const hpW = 44;
+  const hpRatio = clamp(yetiPos.hp / yetiPos.maxHp, 0, 1);
+  ctx.fillStyle = "rgba(10,10,10,0.65)";
+  ctx.fillRect(-hpW * 0.5, -28 * scale, hpW, 5);
+  ctx.fillStyle = "#ff2222";
+  ctx.fillRect(-hpW * 0.5, -28 * scale, hpW * hpRatio, 5);
 
   ctx.restore();
 }
