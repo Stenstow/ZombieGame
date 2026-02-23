@@ -52,6 +52,11 @@ let heliTarget = null;
 let heliPos = { x: 0, y: 0 };
 let heliRot = 0;
 
+let yetiTimer = 180;
+let yetiActive = false;
+let yetiPos = { x: 0, y: 0 };
+let yetiEating = 0;
+
 let muzzleFlash = 0;
 let wave = 1;
 let waveDelay = 1.2;
@@ -1048,6 +1053,105 @@ function drawHelicopter() {
   ctx.restore();
 }
 
+function updateYeti(dt) {
+  if (gameOver && yetiEating <= 0) return;
+
+  if (!yetiActive) {
+    yetiTimer -= dt;
+    if (yetiTimer <= 0) {
+      yetiActive = true;
+      yetiEating = 0;
+      const angle = Math.random() * Math.PI * 2;
+      yetiPos.x = player.x + Math.cos(angle) * 1200;
+      yetiPos.y = player.y + Math.sin(angle) * 1200;
+    }
+    return;
+  }
+
+  if (yetiEating > 0) {
+    yetiEating += dt;
+    return;
+  }
+
+  const dx = player.x - yetiPos.x;
+  const dy = player.y - yetiPos.y;
+  const dist = Math.hypot(dx, dy);
+
+  if (dist > 15) {
+    const yetiSpeed = 410;
+    yetiPos.x += (dx / dist) * yetiSpeed * dt;
+    yetiPos.y += (dy / dist) * yetiSpeed * dt;
+  } else {
+    yetiEating = 0.01;
+    player.health = 0;
+    gameOver = true;
+    for (let p = 0; p < 40; p++) {
+      particles.push({
+        x: player.x, y: player.y,
+        vx: (Math.random() - 0.5) * 400, vy: (Math.random() - 0.5) * 400,
+        life: 1 + Math.random(), type: "blood"
+      });
+    }
+  }
+}
+
+function drawYeti() {
+  if (!yetiActive) return;
+  const x = yetiPos.x - camera.x;
+  const y = yetiPos.y - camera.y;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  if (yetiEating > 0) {
+    const jump = Math.abs(Math.sin(timeNow * 10)) * 15;
+    ctx.translate(0, -jump);
+  }
+
+  const scale = 2.5;
+  ctx.fillStyle = "#a0a4a8";
+  ctx.fillRect(-8 * scale, -10 * scale, 16 * scale, 20 * scale);
+  ctx.fillRect(-6 * scale, 10 * scale, 12 * scale, 4 * scale);
+  ctx.fillRect(-6 * scale, -14 * scale, 12 * scale, 4 * scale);
+
+  ctx.fillStyle = "#000000";
+  const anim = yetiEating > 0 ? 0 : Math.sin(timeNow * 15) * 4;
+  ctx.fillRect(-12 * scale, -12 * scale + anim, 4 * scale, 4 * scale);
+  ctx.fillRect(-16 * scale, -16 * scale + anim, 4 * scale, 4 * scale);
+  ctx.fillRect(-18 * scale, -20 * scale + anim, 2 * scale, 8 * scale);
+
+  ctx.fillRect(8 * scale, -12 * scale - anim, 4 * scale, 4 * scale);
+  ctx.fillRect(12 * scale, -16 * scale - anim, 4 * scale, 4 * scale);
+  ctx.fillRect(16 * scale, -20 * scale - anim, 2 * scale, 8 * scale);
+
+  const stride = yetiEating > 0 ? 0 : Math.sin(timeNow * 15) * 6;
+  ctx.fillRect(-6 * scale, 14 * scale + stride, 4 * scale, 8 * scale);
+  ctx.fillRect(2 * scale, 14 * scale - stride, 4 * scale, 8 * scale);
+
+  ctx.fillStyle = "#ff0000";
+  ctx.fillRect(-3 * scale, -12 * scale, 2 * scale, 2 * scale);
+  ctx.fillRect(1 * scale, -12 * scale, 2 * scale, 2 * scale);
+
+  if (yetiEating > 0) {
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(-4 * scale, -8 * scale, 8 * scale, 6 * scale);
+    ctx.fillStyle = "#ffff00";
+    ctx.fillRect(-4 * scale, -8 * scale, 8 * scale, 1.5 * scale);
+    ctx.fillRect(-4 * scale, -3.5 * scale, 8 * scale, 1.5 * scale);
+    ctx.fillStyle = "#aa0000";
+    ctx.fillRect(-2 * scale, -6.5 * scale, 4 * scale, 3 * scale);
+  } else {
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(-4 * scale, -8 * scale, 8 * scale, 4 * scale);
+    ctx.fillStyle = "#ffff00";
+    ctx.fillRect(-4 * scale, -8 * scale, 2 * scale, 1.5 * scale);
+    ctx.fillRect(2 * scale, -8 * scale, 2 * scale, 1.5 * scale);
+    ctx.fillRect(-2 * scale, -5.5 * scale, 2 * scale, 1.5 * scale);
+  }
+
+  ctx.restore();
+}
+
 function drawWorld() {
   const layers = [];
   for (const b of buildings) layers.push({ y: b.y + b.h, fn: () => drawBuilding(b) });
@@ -1058,6 +1162,10 @@ function drawWorld() {
 
   if (heliActive) {
     layers.push({ y: camera.y + canvas.height + 1000, fn: drawHelicopter });
+  }
+
+  if (yetiActive) {
+    layers.push({ y: yetiPos.y, fn: drawYeti });
   }
 
   layers.sort((a, b) => a.y - b.y);
@@ -1164,7 +1272,8 @@ function drawGameOver() {
   ctx.fillStyle = "#ffffff";
   ctx.font = "700 54px Segoe UI";
   ctx.textAlign = "center";
-  ctx.fillText("DU BIST GEFALLEN", canvas.width / 2, canvas.height / 2 - 18);
+  const gameOverText = yetiEating > 0 ? "VOM YETI GEFRESSEN!" : "DU BIST GEFALLEN";
+  ctx.fillText(gameOverText, canvas.width / 2, canvas.height / 2 - 18);
   ctx.font = "600 24px Segoe UI";
   ctx.fillText("Druecke N fuer Neustart", canvas.width / 2, canvas.height / 2 + 22);
   ctx.textAlign = "left";
@@ -1197,10 +1306,12 @@ function loop(ts) {
     updateMedipacks();
     updateZombies(dt);
     updateHelicopter(dt);
+    updateYeti(dt);
     maybeStartNextWave(dt);
     updateCamera(dt);
     if (player.health <= 0) gameOver = true;
   } else {
+    updateYeti(dt);
     updateCamera(dt);
   }
 
