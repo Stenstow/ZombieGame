@@ -1169,55 +1169,96 @@ function drawYeti() {
     ctx.translate(0, -jump);
   }
 
-  const scale = 2.5;
-  ctx.fillStyle = "#a0a4a8";
-  ctx.fillRect(-8 * scale, -10 * scale, 16 * scale, 20 * scale);
-  ctx.fillRect(-6 * scale, 10 * scale, 12 * scale, 4 * scale);
-  ctx.fillRect(-6 * scale, -14 * scale, 12 * scale, 4 * scale);
+  const scale = 1.6;
 
+  // Arms (SkiFree MS Paint style)
   ctx.fillStyle = "#000000";
   const anim = yetiEating > 0 ? 0 : Math.sin(timeNow * 15) * 4;
-  ctx.fillRect(-12 * scale, -12 * scale + anim, 4 * scale, 4 * scale);
-  ctx.fillRect(-16 * scale, -16 * scale + anim, 4 * scale, 4 * scale);
-  ctx.fillRect(-18 * scale, -20 * scale + anim, 2 * scale, 8 * scale);
 
-  ctx.fillRect(8 * scale, -12 * scale - anim, 4 * scale, 4 * scale);
-  ctx.fillRect(12 * scale, -16 * scale - anim, 4 * scale, 4 * scale);
-  ctx.fillRect(16 * scale, -20 * scale - anim, 2 * scale, 8 * scale);
+  // Left arm
+  ctx.fillRect(-12 * scale, -6 * scale + anim, 4 * scale, 4 * scale);
+  ctx.fillRect(-16 * scale, -10 * scale + anim, 4 * scale, 4 * scale);
+  ctx.fillRect(-20 * scale, -14 * scale + anim, 4 * scale, 4 * scale);
+  // Left claws
+  ctx.fillRect(-24 * scale, -18 * scale + anim, 4 * scale, 4 * scale);
+  ctx.fillRect(-20 * scale, -20 * scale + anim, 4 * scale, 4 * scale);
+  ctx.fillRect(-16 * scale, -18 * scale + anim, 4 * scale, 4 * scale);
 
+  // Right arm
+  ctx.fillRect(8 * scale, -6 * scale - anim, 4 * scale, 4 * scale);
+  ctx.fillRect(12 * scale, -10 * scale - anim, 4 * scale, 4 * scale);
+  ctx.fillRect(16 * scale, -14 * scale - anim, 4 * scale, 4 * scale);
+  // Right claws
+  ctx.fillRect(20 * scale, -18 * scale - anim, 4 * scale, 4 * scale);
+  ctx.fillRect(16 * scale, -20 * scale - anim, 4 * scale, 4 * scale);
+  ctx.fillRect(12 * scale, -18 * scale - anim, 4 * scale, 4 * scale);
+
+  // Legs
   const stride = yetiEating > 0 ? 0 : Math.sin(timeNow * 15) * 6;
-  ctx.fillRect(-6 * scale, 14 * scale + stride, 4 * scale, 8 * scale);
-  ctx.fillRect(2 * scale, 14 * scale - stride, 4 * scale, 8 * scale);
+  // Left leg & toes
+  ctx.fillRect(-8 * scale, 12 * scale + stride, 4 * scale, 8 * scale);
+  ctx.fillRect(-12 * scale, 20 * scale + stride, 4 * scale, 4 * scale);
+  ctx.fillRect(-8 * scale, 20 * scale + stride, 4 * scale, 4 * scale);
+  ctx.fillRect(-4 * scale, 20 * scale + stride, 4 * scale, 4 * scale);
 
+  // Right leg & toes
+  ctx.fillRect(4 * scale, 12 * scale - stride, 4 * scale, 8 * scale);
+  ctx.fillRect(0 * scale, 20 * scale - stride, 4 * scale, 4 * scale);
+  ctx.fillRect(4 * scale, 20 * scale - stride, 4 * scale, 4 * scale);
+  ctx.fillRect(8 * scale, 20 * scale - stride, 4 * scale, 4 * scale);
+
+  // Body Outline
+  ctx.fillRect(-10 * scale, -17 * scale, 20 * scale, 30 * scale);
+  ctx.fillRect(-12 * scale, -5 * scale, 24 * scale, 16 * scale);
+
+  // Body Inside
+  ctx.fillStyle = "#a0a4a8";
+  ctx.fillRect(-8 * scale, -15 * scale, 16 * scale, 26 * scale);
+  ctx.fillRect(-10 * scale, -3 * scale, 20 * scale, 12 * scale);
+
+  // Eyes
   ctx.fillStyle = "#ff0000";
-  ctx.fillRect(-3 * scale, -12 * scale, 2 * scale, 2 * scale);
-  ctx.fillRect(1 * scale, -12 * scale, 2 * scale, 2 * scale);
+  ctx.fillRect(-5 * scale, -12 * scale, 3 * scale, 3 * scale);
+  ctx.fillRect(2 * scale, -12 * scale, 3 * scale, 3 * scale);
 
+  // Mouth Area
   if (yetiEating > 0) {
-    // SkiFree eating animation details
-    ctx.fillStyle = "#1f2732";
-    ctx.beginPath();
-    ctx.arc(0, -11 * scale, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#d0ab84";
-    ctx.fillRect(-3, -8 * scale, 6, 10);
-    ctx.fillStyle = "#ea6666";
-    ctx.fillRect(-2, -5 * scale, 4, 12);
+    // Stick figure being eaten
+    ctx.fillStyle = "#2c3e50"; // head
+    ctx.fillRect(-3 * scale, -14 * scale, 6 * scale, 5 * scale);
+    ctx.fillStyle = "#e74c3c"; // body
+    ctx.fillRect(-2 * scale, -9 * scale, 4 * scale, 6 * scale);
+    ctx.fillStyle = "#2ecc71"; // legs sticking out
+    ctx.fillRect(-5 * scale, -3 * scale, 4 * scale, 7 * scale);
+    ctx.fillRect(1 * scale, -3 * scale, 4 * scale, 7 * scale);
 
+    // Open mouth
     ctx.fillStyle = "#000000";
-    ctx.fillRect(-4 * scale, -8 * scale, 8 * scale, 6 * scale);
+    ctx.fillRect(-7 * scale, -7 * scale, 14 * scale, 10 * scale);
     ctx.fillStyle = "#ffff00";
-    ctx.fillRect(-4 * scale, -8 * scale, 8 * scale, 1.5 * scale);
-    ctx.fillRect(-4 * scale, -3.5 * scale, 8 * scale, 1.5 * scale);
+    ctx.fillRect(-7 * scale, -7 * scale, 14 * scale, 2 * scale);
+    ctx.fillRect(-7 * scale, 1 * scale, 14 * scale, 2 * scale);
     ctx.fillStyle = "#aa0000";
-    ctx.fillRect(-2 * scale, -6.5 * scale, 4 * scale, 3 * scale);
+    ctx.fillRect(-4 * scale, -5 * scale, 8 * scale, 6 * scale);
   } else {
+    // Normal mouth
     ctx.fillStyle = "#000000";
-    ctx.fillRect(-4 * scale, -8 * scale, 8 * scale, 4 * scale);
+    ctx.fillRect(-7 * scale, -7 * scale, 14 * scale, 7 * scale);
+
+    // Teeth matching SkiFree distinct blocks
     ctx.fillStyle = "#ffff00";
-    ctx.fillRect(-4 * scale, -8 * scale, 2 * scale, 1.5 * scale);
-    ctx.fillRect(2 * scale, -8 * scale, 2 * scale, 1.5 * scale);
-    ctx.fillRect(-2 * scale, -5.5 * scale, 2 * scale, 1.5 * scale);
+    // Top Teeth
+    ctx.fillRect(-7 * scale, -7 * scale, 3 * scale, 2.5 * scale);
+    ctx.fillRect(-2 * scale, -7 * scale, 3 * scale, 2.5 * scale);
+    ctx.fillRect(3 * scale, -7 * scale, 3 * scale, 2.5 * scale);
+    // Bottom Teeth
+    ctx.fillRect(-7 * scale, -2.5 * scale, 3 * scale, 2.5 * scale);
+    ctx.fillRect(-2 * scale, -2.5 * scale, 3 * scale, 2.5 * scale);
+    ctx.fillRect(3 * scale, -2.5 * scale, 3 * scale, 2.5 * scale);
+
+    // Inside Mouth
+    ctx.fillStyle = "#aa0000";
+    ctx.fillRect(-4 * scale, -4.5 * scale, 8 * scale, 2 * scale);
   }
 
   const hpW = 44;
