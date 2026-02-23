@@ -143,25 +143,48 @@ function circleHit(ax, ay, ar, bx, by, br) {
   return dx * dx + dy * dy <= rr * rr;
 }
 
-function obstaclePush(entity, nx, ny, radius) {
-  let x = nx;
-  let y = ny;
-  const obstacles = cityObstacles;
+function resolveCollisions(entity, radius) {
+  for (const b of buildings) {
+    const closestX = clamp(entity.x, b.x, b.x + b.w);
+    const closestY = clamp(entity.y, b.y, b.y + b.h);
+    const dx = entity.x - closestX;
+    const dy = entity.y - closestY;
+    const distSq = dx * dx + dy * dy;
 
-  for (const o of obstacles) {
-    const dx = x - o.x;
-    const dy = y - o.y;
-    const minDist = radius + o.r + 2;
-    const dist = Math.hypot(dx, dy);
-    if (dist > 0 && dist < minDist) {
-      const push = (minDist - dist) / dist;
-      x += dx * push;
-      y += dy * push;
+    if (distSq < radius * radius) {
+      const dist = Math.hypot(dx, dy);
+      if (dist === 0) {
+        const dl = entity.x - b.x;
+        const dr = (b.x + b.w) - entity.x;
+        const dt = entity.y - b.y;
+        const db = (b.y + b.h) - entity.y;
+        const minP = Math.min(dl, dr, dt, db);
+        if (minP === dl) entity.x = b.x - radius;
+        else if (minP === dr) entity.x = b.x + b.w + radius;
+        else if (minP === dt) entity.y = b.y - radius;
+        else if (minP === db) entity.y = b.y + b.h + radius;
+      } else {
+        const push = radius - dist;
+        entity.x += (dx / dist) * push;
+        entity.y += (dy / dist) * push;
+      }
     }
   }
+}
 
-  entity.x = clamp(x, radius, world.width - radius);
-  entity.y = clamp(y, radius, world.height - radius);
+function obstaclePush(entity, nx, ny, radius) {
+  const startY = entity.y;
+
+  // Move X axis first and resolve
+  entity.x = nx;
+  resolveCollisions(entity, radius);
+
+  // Move Y axis second, taking into account any corner-slides from step 1
+  entity.y += (ny - startY);
+  resolveCollisions(entity, radius);
+
+  entity.x = clamp(entity.x, radius, world.width - radius);
+  entity.y = clamp(entity.y, radius, world.height - radius);
 }
 
 function aliveZombieCount() {
@@ -539,8 +562,12 @@ function updateBullets(dt) {
     }
 
     let consumed = false;
-    for (const o of obstacles) {
-      if (circleHit(b.x, b.y, b.r, o.x, o.y, o.r)) {
+    for (const bldg of buildings) {
+      const closestX = clamp(b.x, bldg.x, bldg.x + bldg.w);
+      const closestY = clamp(b.y, bldg.y, bldg.y + bldg.h);
+      const dx = b.x - closestX;
+      const dy = b.y - closestY;
+      if (dx * dx + dy * dy < b.r * b.r) {
         bullets.splice(i, 1);
         consumed = true;
         break;
@@ -1133,17 +1160,9 @@ function updateYeti(dt) {
   const dist = Math.hypot(dx, dy);
 
   if (dist > 15) {
-    // Yeti AI: Direct pursuit but with very slight slide vector to help around flat walls
     const yetiSpeed = 410;
-    // adding a minor wiggle helps it not get perfectly stuck on a flat building wall
-    const wiggle = Math.sin(timeNow * 2) * 0.3;
-    let mx = (dx / dist) + wiggle * (dy / dist);
-    let my = (dy / dist) - wiggle * (dx / dist);
-
-    // Normalize mx, my again
-    const mLen = Math.hypot(mx, my);
-    mx /= mLen;
-    my /= mLen;
+    const mx = dx / dist;
+    const my = dy / dist;
 
     const nx = yetiPos.x + mx * yetiSpeed * dt;
     const ny = yetiPos.y + my * yetiSpeed * dt;
