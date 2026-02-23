@@ -15,6 +15,7 @@ const keys = {
   Shift: false,
   Space: false,
   R: false,
+  H: false,
 };
 
 const player = {
@@ -44,6 +45,13 @@ const player = {
 const camera = { x: 0, y: 0 };
 
 let gameOver = false;
+let heliCooldown = 0;
+let heliActive = false;
+let heliKillsLeft = 0;
+let heliTarget = null;
+let heliPos = { x: 0, y: 0 };
+let heliRot = 0;
+
 let muzzleFlash = 0;
 let wave = 1;
 let waveDelay = 1.2;
@@ -399,6 +407,7 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "1") switchWeapon(0);
   if (e.key === "2") switchWeapon(1);
   if (e.key === "3") switchWeapon(2);
+  if (e.key === "h" || e.key === "H") callHelicopter();
 
   if ((e.key === "n" || e.key === "N") && gameOver) {
     window.location.reload();
@@ -433,6 +442,10 @@ document.querySelectorAll(".mob-btn").forEach((btn) => {
     }
     if (tKey === "Switch") {
       switchWeapon((player.currentWeapon + 1) % player.weapons.length);
+      return;
+    }
+    if (tKey === "H") {
+      callHelicopter();
       return;
     }
     keys[tKey] = true;
@@ -904,6 +917,137 @@ function drawParticles() {
   }
 }
 
+function callHelicopter() {
+  if (heliCooldown <= 0 && !heliActive && !gameOver) {
+    heliActive = true;
+    heliCooldown = 120; // 2 minutes
+    heliKillsLeft = 5;
+    heliPos = { x: player.x, y: player.y + 1200 };
+    heliTarget = null;
+  }
+}
+
+function updateHelicopter(dt) {
+  if (!heliActive) {
+    if (heliCooldown > 0) heliCooldown -= dt;
+    if (heliCooldown < 0) heliCooldown = 0;
+    return;
+  }
+
+  heliRot += dt * 30;
+
+  if (heliKillsLeft <= 0) {
+    heliPos.y -= 300 * dt;
+    heliPos.x += 100 * dt;
+    if (heliPos.y < camera.y - 800) {
+      heliActive = false;
+    }
+    return;
+  }
+
+  if (!heliTarget || !heliTarget.alive) {
+    heliTarget = null;
+    let bestScore = -1;
+    for (const z of zombies) {
+      if (z.alive) {
+        const d = Math.hypot(z.x - player.x, z.y - player.y);
+        const score = (z.type === 'boss' ? 5000 : (z.type === 'heavy' ? 1000 : 0)) + Math.max(0, 1500 - d);
+        if (score > bestScore) {
+          bestScore = score;
+          heliTarget = z;
+        }
+      }
+    }
+  }
+
+  if (heliTarget) {
+    const dx = heliTarget.x - heliPos.x;
+    const dy = heliTarget.y - heliPos.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 150) {
+      heliPos.x += (dx / dist) * 450 * dt;
+      heliPos.y += (dy / dist) * 450 * dt;
+    } else {
+      heliTarget.hp -= 9999;
+      if (heliTarget.hp <= 0) {
+        heliTarget.alive = false;
+        player.score += heliTarget.scoreValue;
+        totalKills += 1;
+
+        for (let p = 0; p < 15; p++) {
+          particles.push({
+            x: heliTarget.x, y: heliTarget.y,
+            vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.5) * 300,
+            life: 0.5 + Math.random() * 0.5, type: "blood"
+          });
+        }
+      }
+      heliKillsLeft -= 1;
+      heliTarget = null;
+
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x: heliPos.x, y: heliPos.y,
+          vx: dx * 0.5 + (Math.random() - 0.5) * 150, vy: dy * 0.5 + (Math.random() - 0.5) * 150,
+          life: 0.3, type: "shell"
+        });
+      }
+    }
+  } else {
+    const dx = player.x - heliPos.x;
+    const dy = player.y - 300 - heliPos.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 20) {
+      heliPos.x += (dx / dist) * 200 * dt;
+      heliPos.y += (dy / dist) * 200 * dt;
+    }
+  }
+}
+
+function drawHelicopter() {
+  if (!heliActive) return;
+  const x = heliPos.x - camera.x;
+  const y = heliPos.y - camera.y;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.beginPath();
+  ctx.ellipse(30, 40, 25, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#2c3e50";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 35, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#87ceeb";
+  ctx.beginPath();
+  ctx.ellipse(20, 0, 10, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#1a252f";
+  ctx.fillRect(-60, -2, 30, 4);
+
+  ctx.save();
+  ctx.rotate(heliRot);
+  ctx.fillStyle = "rgba(40, 40, 40, 0.6)";
+  ctx.fillRect(-45, -2, 90, 4);
+  ctx.fillRect(-2, -45, 4, 90);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(-60, 0);
+  ctx.rotate(heliRot * 2);
+  ctx.fillStyle = "rgba(40, 40, 40, 0.7)";
+  ctx.fillRect(-10, -1, 20, 2);
+  ctx.restore();
+
+  ctx.restore();
+}
+
 function drawWorld() {
   const layers = [];
   for (const b of buildings) layers.push({ y: b.y + b.h, fn: () => drawBuilding(b) });
@@ -911,6 +1055,10 @@ function drawWorld() {
   for (const m of medipacks) if (!m.taken) layers.push({ y: m.y, fn: () => drawMedipack(m) });
   for (const z of zombies) if (z.alive) layers.push({ y: z.y, fn: () => drawZombie(z) });
   layers.push({ y: player.y + 1, fn: drawPlayer });
+
+  if (heliActive) {
+    layers.push({ y: camera.y + canvas.height + 1000, fn: drawHelicopter });
+  }
 
   layers.sort((a, b) => a.y - b.y);
   for (const l of layers) l.fn();
@@ -934,6 +1082,22 @@ function drawOverlay() {
   ctx.font = "13px Segoe UI";
   ctx.fillText("Leben", 16, canvas.height - 89);
   ctx.fillText("Ausdauer", 16, canvas.height - 65);
+
+  ctx.fillStyle = "rgba(12, 16, 10, 0.56)";
+  ctx.fillRect(16, canvas.height - 36, 120, 14);
+
+  if (heliCooldown <= 0) {
+    ctx.fillStyle = "#44aaff";
+    ctx.fillRect(16, canvas.height - 36, 120, 14);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Heli BEREIT (H)", 16, canvas.height - 41);
+  } else {
+    const ratio = 1 - (heliCooldown / 120);
+    ctx.fillStyle = "rgba(68, 170, 255, 0.4)";
+    ctx.fillRect(16, canvas.height - 36, 120 * ratio, 14);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(`Heli: ${Math.ceil(heliCooldown)}s`, 16, canvas.height - 41);
+  }
 
   const w = player.weapons[player.currentWeapon];
   const ammoText = player.reloadTime > 0
@@ -1032,6 +1196,7 @@ function loop(ts) {
     updateParticles(dt);
     updateMedipacks();
     updateZombies(dt);
+    updateHelicopter(dt);
     maybeStartNextWave(dt);
     updateCamera(dt);
     if (player.health <= 0) gameOver = true;
