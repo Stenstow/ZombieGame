@@ -1096,9 +1096,23 @@ function updateYeti(dt) {
       yetiEating = 0;
       yetiPos.hp = (2 + Math.floor(wave / 3)) * 3;
       yetiPos.maxHp = yetiPos.hp;
-      const angle = Math.random() * Math.PI * 2;
-      yetiPos.x = player.x + Math.cos(angle) * 1200;
-      yetiPos.y = player.y + Math.sin(angle) * 1200;
+      let validSpawn = false;
+      for (let attempts = 0; attempts < 32; attempts++) {
+        const angle = Math.random() * Math.PI * 2;
+        const tx = player.x + Math.cos(angle) * 1200;
+        const ty = player.y + Math.sin(angle) * 1200;
+        if (!isInsideObstacle(tx, ty, 23)) {
+          yetiPos.x = tx;
+          yetiPos.y = ty;
+          validSpawn = true;
+          break;
+        }
+      }
+      // Fallback if no valid spot found
+      if (!validSpawn) {
+        yetiPos.x = player.x;
+        yetiPos.y = player.y - 1200;
+      }
     }
     return;
   }
@@ -1113,9 +1127,20 @@ function updateYeti(dt) {
   const dist = Math.hypot(dx, dy);
 
   if (dist > 15) {
+    // Yeti AI: Direct pursuit but with very slight slide vector to help around flat walls
     const yetiSpeed = 410;
-    const nx = yetiPos.x + (dx / dist) * yetiSpeed * dt;
-    const ny = yetiPos.y + (dy / dist) * yetiSpeed * dt;
+    // adding a minor wiggle helps it not get perfectly stuck on a flat building wall
+    const wiggle = Math.sin(timeNow * 2) * 0.3;
+    let mx = (dx / dist) + wiggle * (dy / dist);
+    let my = (dy / dist) - wiggle * (dx / dist);
+
+    // Normalize mx, my again
+    const mLen = Math.hypot(mx, my);
+    mx /= mLen;
+    my /= mLen;
+
+    const nx = yetiPos.x + mx * yetiSpeed * dt;
+    const ny = yetiPos.y + my * yetiSpeed * dt;
     obstaclePush(yetiPos, nx, ny, 23);
   } else {
     yetiEating = 0.01;
@@ -1258,6 +1283,23 @@ function drawOverlay() {
     ctx.fillRect(16, canvas.height - 36, 120 * ratio, 14);
     ctx.fillStyle = "#ffffff";
     ctx.fillText(`Heli: ${Math.ceil(heliCooldown)}s`, 16, canvas.height - 41);
+  }
+
+  // Yeti Ladebalken
+  ctx.fillStyle = "rgba(12, 16, 10, 0.56)";
+  ctx.fillRect(146, canvas.height - 36, 120, 14);
+
+  if (yetiActive) {
+    ctx.fillStyle = "#ff2222";
+    ctx.fillRect(146, canvas.height - 36, 120, 14);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("YETI IST HIER!", 146, canvas.height - 41);
+  } else {
+    const ratio = 1 - (yetiTimer / 30);
+    ctx.fillStyle = "rgba(255, 60, 60, 0.4)";
+    ctx.fillRect(146, canvas.height - 36, 120 * ratio, 14);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(`Yeti in: ${Math.ceil(yetiTimer)}s`, 146, canvas.height - 41);
   }
 
   const w = player.weapons[player.currentWeapon];
