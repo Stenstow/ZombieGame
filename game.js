@@ -52,7 +52,7 @@ let heliTarget = null;
 let heliPos = { x: 0, y: 0 };
 let heliRot = 0;
 
-let yetiTimer = 180;
+let yetiTimer = 30;
 let yetiActive = false;
 let yetiPos = { x: 0, y: 0 };
 let yetiEating = 0;
@@ -562,7 +562,7 @@ function updateBullets(dt) {
 
       if (yetiPos.hp <= 0) {
         yetiActive = false;
-        yetiTimer = 180;
+        yetiTimer = 30;
         player.score += 2500;
         for (let p = 0; p < 25; p++) {
           particles.push({
