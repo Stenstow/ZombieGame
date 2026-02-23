@@ -36,7 +36,7 @@ const player = {
   barrelSpin: 0,
   currentWeapon: 0,
   weapons: [
-    { name: "Gewehr", ammo: Infinity, magSize: Infinity, reserveAmmo: Infinity, maxReserve: Infinity, reloadTime: 0, fireCooldown: 0.1, speed: 860, spread: 0.08, pellets: 1, damage: 0.5, r: 4, type: "bullet", color: "#ffef9d" },
+    { name: "Gewehr", ammo: 30, magSize: 30, reserveAmmo: Infinity, maxReserve: Infinity, reloadTime: 1.5, fireCooldown: 0.1, speed: 860, spread: 0.08, pellets: 1, damage: 0.5, r: 4, type: "bullet", color: "#ffef9d" },
     { name: "Schrotflinte", ammo: 8, magSize: 8, reserveAmmo: 64, maxReserve: 128, reloadTime: 1.5, fireCooldown: 0.8, speed: 700, spread: 0.35, pellets: 10, damage: 1, r: 3, type: "bullet", color: "#f3c153" },
     { name: "Flammenwerfer", ammo: 150, magSize: 150, reserveAmmo: 600, maxReserve: 1200, reloadTime: 2.8, fireCooldown: 0.04, speed: 450, spread: 0.3, pellets: 1, damage: 0.4, r: 10, type: "flame", color: "#ff5000" }
   ]
@@ -386,7 +386,7 @@ function fire() {
   }
 
   player.fireCooldown = w.fireCooldown;
-  if (w.ammo !== Infinity) w.ammo -= 1;
+  w.ammo -= 1;
   muzzleFlash = w.type === "flame" ? 0.02 : 0.06;
   player.barrelSpin += 0.1;
 
@@ -1369,9 +1369,10 @@ function drawOverlay() {
   }
 
   const w = player.weapons[player.currentWeapon];
+  let resText = w.reserveAmmo === Infinity ? "∞" : w.reserveAmmo;
   const ammoText = player.reloadTime > 0
     ? `Nachladen... ${Math.ceil(player.reloadTime * 10) / 10}s`
-    : (w.ammo === Infinity ? `${w.name}: ∞` : `${w.name}: ${w.ammo}/${w.reserveAmmo}`);
+    : `${w.name}: ${w.ammo}/${resText}`;
 
   ctx.fillStyle = "rgba(12,16,10,0.62)";
   ctx.fillRect(canvas.width - 250, canvas.height - 52, 234, 36);
