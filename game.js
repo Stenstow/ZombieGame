@@ -32,10 +32,13 @@ const player = {
   hitCooldown: 0,
   fireCooldown: 0,
   reloadTime: 0,
-  ammo: 180,
-  magSize: 180,
-  reserveAmmo: 1800,
   barrelSpin: 0,
+  currentWeapon: 0,
+  weapons: [
+    { name: "Minigun", ammo: 180, magSize: 180, reserveAmmo: 1800, maxReserve: 3600, reloadTime: 2.2, fireCooldown: 0.035, speed: 860, spread: 0.22, pellets: 1, damage: 1, r: 4, type: "bullet", color: "#ffef9d" },
+    { name: "Schrotflinte", ammo: 8, magSize: 8, reserveAmmo: 64, maxReserve: 128, reloadTime: 1.5, fireCooldown: 0.8, speed: 700, spread: 0.35, pellets: 10, damage: 1, r: 3, type: "bullet", color: "#f3c153" },
+    { name: "Flammenwerfer", ammo: 150, magSize: 150, reserveAmmo: 600, maxReserve: 1200, reloadTime: 2.8, fireCooldown: 0.04, speed: 450, spread: 0.3, pellets: 1, damage: 0.4, r: 10, type: "flame", color: "#ff5000" }
+  ]
 };
 
 const camera = { x: 0, y: 0 };
@@ -310,51 +313,74 @@ function maybeStartNextWave(dt) {
     waveDelay = 1.5;
     startWave(wave);
     player.score += 120;
-    player.reserveAmmo = clamp(player.reserveAmmo + 220, 0, 3600);
+
+    player.weapons[0].reserveAmmo = clamp(player.weapons[0].reserveAmmo + 220, 0, player.weapons[0].maxReserve);
+    player.weapons[1].reserveAmmo = clamp(player.weapons[1].reserveAmmo + 16, 0, player.weapons[1].maxReserve);
+    player.weapons[2].reserveAmmo = clamp(player.weapons[2].reserveAmmo + 150, 0, player.weapons[2].maxReserve);
+  }
+}
+
+function switchWeapon(index) {
+  if (index >= 0 && index < player.weapons.length && player.currentWeapon !== index) {
+    player.currentWeapon = index;
+    player.reloadTime = 0;
+    player.fireCooldown = 0.25; // short delay after switching
   }
 }
 
 function reload() {
-  if (player.reloadTime > 0 || player.ammo === player.magSize || player.reserveAmmo <= 0) return;
-  player.reloadTime = 2.2;
+  const w = player.weapons[player.currentWeapon];
+  if (player.reloadTime > 0 || w.ammo === w.magSize || w.reserveAmmo <= 0) return;
+  player.reloadTime = w.reloadTime;
 }
 
 function fire() {
   if (gameOver) return;
+  const w = player.weapons[player.currentWeapon];
   if (player.reloadTime > 0 || player.fireCooldown > 0) return;
-  if (player.ammo <= 0) {
+  if (w.ammo <= 0) {
     reload();
     return;
   }
 
-  player.fireCooldown = 0.035;
-  player.ammo -= 1;
-  muzzleFlash = 0.06;
-  player.barrelSpin += 0.9;
+  player.fireCooldown = w.fireCooldown;
+  w.ammo -= 1;
+  muzzleFlash = w.type === "flame" ? 0.02 : 0.06;
+  player.barrelSpin += w.name === "Minigun" ? 0.9 : 0.1;
 
-  particles.push({
-    x: player.x + player.dirX * 10,
-    y: player.y + player.dirY * 10,
-    vx: (player.dirY + (Math.random() - 0.5) * 0.5) * 120,
-    vy: (-player.dirX + (Math.random() - 0.5) * 0.5) * 120,
-    life: 1.5 + Math.random(),
-    type: "shell"
-  });
+  if (w.type !== "flame") {
+    particles.push({
+      x: player.x + player.dirX * 10,
+      y: player.y + player.dirY * 10,
+      vx: (player.dirY + (Math.random() - 0.5) * 0.5) * 120,
+      vy: (-player.dirX + (Math.random() - 0.5) * 0.5) * 120,
+      life: 1.5 + Math.random(),
+      type: "shell"
+    });
+  }
 
-  const speed = 860;
-  const spread = (Math.random() - 0.5) * 0.22;
-  const c = Math.cos(spread);
-  const s = Math.sin(spread);
-  const sx = player.dirX * c - player.dirY * s;
-  const sy = player.dirX * s + player.dirY * c;
-  bullets.push({
-    x: player.x + sx * 26,
-    y: player.y + sy * 26,
-    vx: sx * speed,
-    vy: sy * speed,
-    life: 0.95,
-    r: 4,
-  });
+  for (let i = 0; i < w.pellets; i++) {
+    const spread = (Math.random() - 0.5) * w.spread;
+    const c = Math.cos(spread);
+    const s = Math.sin(spread);
+    const sx = player.dirX * c - player.dirY * s;
+    const sy = player.dirX * s + player.dirY * c;
+
+    // add some random speed variation for flamethrower and shotgun
+    const varSpeed = w.speed * (1 + (Math.random() - 0.5) * 0.15);
+
+    bullets.push({
+      x: player.x + sx * 26 + (Math.random() - 0.5) * 5,
+      y: player.y + sy * 26 + (Math.random() - 0.5) * 5,
+      vx: sx * varSpeed,
+      vy: sy * varSpeed,
+      life: w.type === "flame" ? (0.35 + Math.random() * 0.1) : 0.95,
+      r: w.type === "flame" ? (8 + Math.random() * 6) : w.r,
+      damage: w.damage,
+      type: w.type,
+      color: w.color
+    });
+  }
 }
 
 window.addEventListener("keydown", (e) => {
@@ -370,6 +396,10 @@ window.addEventListener("keydown", (e) => {
     keys.R = true;
     e.preventDefault();
   }
+  if (e.key === "1") switchWeapon(0);
+  if (e.key === "2") switchWeapon(1);
+  if (e.key === "3") switchWeapon(2);
+
   if ((e.key === "n" || e.key === "N") && gameOver) {
     window.location.reload();
   }
@@ -399,6 +429,10 @@ document.querySelectorAll(".mob-btn").forEach((btn) => {
     e.preventDefault();
     if (tKey === 'N' && gameOver) {
       window.location.reload();
+      return;
+    }
+    if (tKey === "Switch") {
+      switchWeapon((player.currentWeapon + 1) % player.weapons.length);
       return;
     }
     keys[tKey] = true;
@@ -456,10 +490,11 @@ function updatePlayer(dt) {
   if (player.reloadTime > 0) {
     player.reloadTime -= dt;
     if (player.reloadTime <= 0) {
-      const needed = player.magSize - player.ammo;
-      const amount = Math.min(needed, player.reserveAmmo);
-      player.ammo += amount;
-      player.reserveAmmo -= amount;
+      const w = player.weapons[player.currentWeapon];
+      const needed = w.magSize - w.ammo;
+      const amount = Math.min(needed, w.reserveAmmo);
+      w.ammo += amount;
+      w.reserveAmmo -= amount;
       player.reloadTime = 0;
     }
   }
@@ -492,10 +527,13 @@ function updateBullets(dt) {
     for (const z of zombies) {
       if (!z.alive) continue;
       if (circleHit(b.x, b.y, b.r, z.x, z.y, z.r)) {
-        z.hp -= 1;
-        bullets.splice(i, 1);
+        z.hp -= b.damage;
 
-        for (let p = 0; p < 3; p++) {
+        if (b.type !== "flame") {
+          bullets.splice(i, 1);
+        }
+
+        for (let p = 0; p < (b.type === "flame" ? 1 : 3); p++) {
           particles.push({
             x: b.x,
             y: b.y,
@@ -811,10 +849,27 @@ function drawMedipack(m) {
 function drawBullet(b) {
   const x = b.x - camera.x;
   const y = b.y - camera.y;
-  ctx.fillStyle = "#ffef9d";
-  ctx.beginPath();
-  ctx.arc(x, y, 3, 0, Math.PI * 2);
-  ctx.fill();
+
+  if (b.type === "flame") {
+    // flame effect
+    b.r *= 1.05; // Make flames grow
+    const alpha = Math.max(0, b.life * 2);
+    ctx.fillStyle = `rgba(255, ${60 + Math.random() * 80}, 0, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, b.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(x, y, b.r * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // normal bullet
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.arc(x, y, b.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function updateParticles(dt) {
@@ -880,9 +935,10 @@ function drawOverlay() {
   ctx.fillText("Leben", 16, canvas.height - 89);
   ctx.fillText("Ausdauer", 16, canvas.height - 65);
 
+  const w = player.weapons[player.currentWeapon];
   const ammoText = player.reloadTime > 0
     ? `Nachladen... ${Math.ceil(player.reloadTime * 10) / 10}s`
-    : `Minigun: ${player.ammo}/${player.reserveAmmo}`;
+    : `${w.name}: ${w.ammo}/${w.reserveAmmo}`;
 
   ctx.fillStyle = "rgba(12,16,10,0.62)";
   ctx.fillRect(canvas.width - 250, canvas.height - 52, 234, 36);
