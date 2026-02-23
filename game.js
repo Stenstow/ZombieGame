@@ -60,6 +60,7 @@ const medipacks = [];
 const buildings = [];
 const cityObstacles = [];
 const props = [];
+const particles = [];
 
 function addBuilding(x, y, w, h, tone = 0) {
   const b = { x, y, w, h, tone };
@@ -331,6 +332,15 @@ function fire() {
   muzzleFlash = 0.06;
   player.barrelSpin += 0.9;
 
+  particles.push({
+    x: player.x + player.dirX * 10,
+    y: player.y + player.dirY * 10,
+    vx: (player.dirY + (Math.random() - 0.5) * 0.5) * 120,
+    vy: (-player.dirX + (Math.random() - 0.5) * 0.5) * 120,
+    life: 1.5 + Math.random(),
+    type: "shell"
+  });
+
   const speed = 860;
   const spread = (Math.random() - 0.5) * 0.22;
   const c = Math.cos(spread);
@@ -484,6 +494,18 @@ function updateBullets(dt) {
       if (circleHit(b.x, b.y, b.r, z.x, z.y, z.r)) {
         z.hp -= 1;
         bullets.splice(i, 1);
+
+        for (let p = 0; p < 3; p++) {
+          particles.push({
+            x: b.x,
+            y: b.y,
+            vx: (b.vx * 0.1) + (Math.random() - 0.5) * 100,
+            vy: (b.vy * 0.1) + (Math.random() - 0.5) * 100,
+            life: 0.3 + Math.random() * 0.3,
+            type: "blood"
+          });
+        }
+
         if (z.hp <= 0) {
           z.alive = false;
           player.score += z.scoreValue;
@@ -795,6 +817,38 @@ function drawBullet(b) {
   ctx.fill();
 }
 
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= 0.92;
+    p.vy *= 0.92;
+    p.life -= dt;
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    const x = p.x - camera.x;
+    const y = p.y - camera.y;
+    if (x < -20 || x > canvas.width + 20 || y < -20 || y > canvas.height + 20) continue;
+
+    if (p.type === "shell") {
+      ctx.fillStyle = `rgba(218, 165, 32, ${Math.min(p.life, 1)})`;
+      ctx.fillRect(x, y, 3, 2);
+    } else if (p.type === "blood") {
+      ctx.fillStyle = `rgba(180, 20, 20, ${p.life * 2})`;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
 function drawWorld() {
   const layers = [];
   for (const b of buildings) layers.push({ y: b.y + b.h, fn: () => drawBuilding(b) });
@@ -805,6 +859,8 @@ function drawWorld() {
 
   layers.sort((a, b) => a.y - b.y);
   for (const l of layers) l.fn();
+
+  drawParticles();
 
   for (const b of bullets) drawBullet(b);
 }
@@ -917,6 +973,7 @@ function loop(ts) {
   if (!gameOver) {
     updatePlayer(dt);
     updateBullets(dt);
+    updateParticles(dt);
     updateMedipacks();
     updateZombies(dt);
     maybeStartNextWave(dt);
